@@ -314,6 +314,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
             // スプライトに物理演算を設定する
             under.physicsBody = SKPhysicsBody(rectangleOf: wallTexture.size())
+            under.physicsBody?.categoryBitMask = self.wallCategory
 
             // 衝突の時に動かないように設定する
             under.physicsBody?.isDynamic = false
