@@ -14,6 +14,7 @@
 		CE4E9ABA24D696BD003CE74B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE4E9AB924D696BD003CE74B /* Assets.xcassets */; };
 		CE4E9ABD24D696BD003CE74B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = CE4E9ABB24D696BD003CE74B /* LaunchScreen.storyboard */; };
 		CE4E9AC524D699D9003CE74B /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE4E9AC424D699D9003CE74B /* GameScene.swift */; };
+		CE4E9AC724DD387C003CE74B /* ItemGetSound.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = CE4E9AC624DD387C003CE74B /* ItemGetSound.mp3 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -26,6 +27,7 @@
 		CE4E9ABC24D696BD003CE74B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		CE4E9ABE24D696BD003CE74B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CE4E9AC424D699D9003CE74B /* GameScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameScene.swift; sourceTree = "<group>"; };
+		CE4E9AC624DD387C003CE74B /* ItemGetSound.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; name = ItemGetSound.mp3; path = ../../../ItemGetSound.mp3; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -66,6 +68,7 @@
 				CE4E9AB924D696BD003CE74B /* Assets.xcassets */,
 				CE4E9ABB24D696BD003CE74B /* LaunchScreen.storyboard */,
 				CE4E9ABE24D696BD003CE74B /* Info.plist */,
+				CE4E9AC624DD387C003CE74B /* ItemGetSound.mp3 */,
 			);
 			path = FlappyBird;
 			sourceTree = "<group>";
@@ -130,6 +133,7 @@
 			files = (
 				CE4E9ABD24D696BD003CE74B /* LaunchScreen.storyboard in Resources */,
 				CE4E9ABA24D696BD003CE74B /* Assets.xcassets in Resources */,
+				CE4E9AC724DD387C003CE74B /* ItemGetSound.mp3 in Resources */,
 				CE4E9AB824D696BA003CE74B /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

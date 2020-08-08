@@ -7,27 +7,43 @@
 //
 
 import SpriteKit
+import AVFoundation
 
 class GameScene: SKScene, SKPhysicsContactDelegate {
+    //再生するサウンドのインスタンス
+    var itemPlayer: AVAudioPlayer! = nil
 
     var scrollNode:SKNode!
     var wallNode:SKNode!
     var bird:SKSpriteNode!
+    var heartNode:SKNode!
 
     // 衝突判定カテゴリー
     let birdCategory: UInt32 = 1 << 0       // 0...00001
     let groundCategory: UInt32 = 1 << 1     // 0...00010
     let wallCategory: UInt32 = 1 << 2       // 0...00100
     let scoreCategory: UInt32 = 1 << 3      // 0...01000
+    let heartScoreCategory: UInt32 = 1 << 4 // 0...10000
 
      // スコア用
     var score = 0
+    var life = 1
     var scoreLabelNode:SKLabelNode!
     var bestScoreLabelNode:SKLabelNode!
+    var lifeLabelNode:SKLabelNode!
     let userDefaults:UserDefaults = UserDefaults.standard
 
     // SKView上にシーンが表示されたときに呼ばれるメソッド
     override func didMove(to view: SKView) {
+        // 再生する音声ファイルを指定する
+        let itemSoundURL = Bundle.main.url(forResource: "ItemGetSound", withExtension: "mp3")
+        do {
+            // 効果音を鳴らす
+            itemPlayer = try AVAudioPlayer(contentsOf: itemSoundURL!)
+        } catch {
+            print("音声取得エラー")
+        }
+
         // 重力を設定
         physicsWorld.gravity = CGVector(dx: 0, dy:  -4)
         physicsWorld.contactDelegate = self
@@ -43,11 +59,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         wallNode = SKNode()
         scrollNode.addChild(wallNode)
 
+        //アイテム用のノード
+        heartNode = SKNode()
+        scrollNode.addChild(heartNode)
         // 各種スプライトを生成する処理をメソッドに分割
         setupGround()
         setupCloud()
         setupWall()
         setupBird()
+        setupHeart()
+
         setupScoreLabel()
     }
 
@@ -72,8 +93,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 userDefaults.synchronize()
             }
 
-        } else {
-            // 壁か地面と衝突した
+        //鳥と地面との衝突判定（ライフを0にする）
+        } else if (contact.bodyA.categoryBitMask & groundCategory) == groundCategory || (contact.bodyB.categoryBitMask & groundCategory) == groundCategory {
+            //地面に衝突した
+            print("FallDown")
+            life = 0
+            lifeLabelNode.text = "Life:\(life)"
             print("GameOver")
 
             // スクロールを停止させる
@@ -85,6 +110,47 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             bird.run(roll, completion:{
                 self.bird.speed = 0
             })
+
+
+        //アイテム衝突判定
+        } else if (contact.bodyA.categoryBitMask & heartScoreCategory) == heartScoreCategory || (contact.bodyB.categoryBitMask & heartScoreCategory) == heartScoreCategory {
+
+            //アイテムに衝突した
+            print("HeartGet")
+            life += 1
+            lifeLabelNode.text = "Life:\(life)"
+
+            //音楽を鳴らす
+            itemPlayer?.play()
+
+            if (contact.bodyA.categoryBitMask & heartScoreCategory) == heartScoreCategory {
+                contact.bodyA.node?.removeFromParent()
+            }
+            if (contact.bodyB.categoryBitMask & heartScoreCategory) == heartScoreCategory {
+                contact.bodyB.node?.removeFromParent()
+            }
+
+        } else {
+            //ライフがあれば、衝突した時にライフを１減らす
+            if life > 1 {
+                print("ライフが減りました")
+            } else {
+                // 壁と衝突した（ライフが残り１の時）
+                print("GameOver")
+
+                // スクロールを停止させる
+                scrollNode.speed = 0
+
+                bird.physicsBody?.collisionBitMask = groundCategory
+
+                let roll = SKAction.rotate(byAngle: CGFloat(Double.pi) * CGFloat(bird.position.y) * 0.01, duration:1)
+                bird.run(roll, completion:{
+                    self.bird.speed = 0
+                })
+            }
+            //ライフ減少
+            life -= 1
+            lifeLabelNode.text = "Life:\(life)"
         }
     }
 
@@ -103,6 +169,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     func restart() {
         score = 0
         scoreLabelNode.text = "Score:\(score)"
+        life = 1
+        lifeLabelNode.text = "Life:\(life)"
 
         bird.position = CGPoint(x: self.frame.size.width * 0.2, y:self.frame.size.height * 0.7)
         bird.physicsBody?.velocity = CGVector.zero
@@ -115,7 +183,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         scrollNode.speed = 1
     }
 
-    func setupGround(){
+    func setupGround() {
         // 地面の画像を読み込む
         let groundTexture = SKTexture(imageNamed: "ground")
         groundTexture.filteringMode = .nearest
@@ -323,6 +391,76 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         addChild(bird)
     }
 
+    func setupHeart() {
+        let heartTexture = SKTexture(imageNamed: "heart")
+        heartTexture.filteringMode = .linear
+
+        //移動する距離を計算
+        let movingDistance = CGFloat(self.frame.size.width * 2)
+
+        // 画面外まで移動するアクションを作成
+        let moveItem = SKAction.moveBy(x: -movingDistance, y: 0, duration:4.0)
+
+        // 自身を取り除くアクションを作成
+        let removeItem = SKAction.removeFromParent()
+        // 2つのアニメーションを順に実行するアクションを作成
+        let itemAnimation = SKAction.sequence([moveItem, removeItem])
+
+        // アイテムを生成するアクションを作成
+        let createHeartAnimation = SKAction.run ({
+            // アイテム関連のノードをのせるノードを作成
+            let heart = SKNode()
+
+            heart.position = CGPoint(x: self.frame.size.width + heartTexture.size().width / 2, y: 0.0)
+            heart.zPosition = 50 //手前
+            // 画面のY軸の中央値
+            let center_y = self.frame.size.height / 2
+            // アイテムのY座標を上下ランダムにさせるときの最大値
+            let random_y_range = self.frame.size.height / 2
+            // アイテムのY軸の下限
+            let item_lowest_y = UInt32( center_y - heartTexture.size().height / 2 -  random_y_range / 2)
+            // 1〜random_y_rangeまでのランダムな整数を生成
+            let random_y = arc4random_uniform( UInt32(random_y_range) )
+            // Y軸の下限にランダムな値を足して、アイテムのY座標を決定
+            let item_y = CGFloat(item_lowest_y + random_y)
+
+            // 画面のx軸の中央値
+            let center_x = self.frame.size.width / 2
+            // アイテムのX座標を上下ランダムにさせるときの最大値
+            let random_x_range = self.frame.size.width / 2
+            // アイテムのX軸の下限
+            let item_lowest_x = UInt32( center_x - heartTexture.size().width / 2 -  random_x_range / 2)
+            // 1〜random_x_rangeまでのランダムな整数を生成
+            let random_x = arc4random_uniform( UInt32(random_x_range) )
+            // X軸の下限にランダムな値を足して、アイテムのX座標を決定
+            let item_x = CGFloat(item_lowest_x + random_x)
+
+            //アイテムを生成
+            let itemSprite = SKSpriteNode(texture: heartTexture)
+            itemSprite.position = CGPoint(x: item_x, y: item_y)  //修正
+
+            itemSprite.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: itemSprite.size.width, height: itemSprite.size.height))  //重力を設定
+            itemSprite.physicsBody?.isDynamic = false
+            itemSprite.physicsBody?.categoryBitMask = self.heartScoreCategory
+            itemSprite.physicsBody?.contactTestBitMask = self.birdCategory   //衝突判定させる相手のカテゴリを設定
+
+            heart.addChild(itemSprite)
+
+            heart.run(itemAnimation)
+
+            self.heartNode.addChild(heart)
+
+        })
+        // 次のアイテム作成までの待ち時間のアクションを作成
+        let waitAnimation = SKAction.wait(forDuration: 4)
+
+        // アイテムを作成->待ち時間->アイテムを作成を無限に繰り替えるアクションを作成
+        let repeatForeverAnimation = SKAction.repeatForever(SKAction.sequence([createHeartAnimation, waitAnimation]))
+
+        heartNode?.run(repeatForeverAnimation)
+
+    }
+
     func setupScoreLabel() {
         score = 0
         scoreLabelNode = SKLabelNode()
@@ -342,5 +480,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let bestScore = userDefaults.integer(forKey: "BEST")
         bestScoreLabelNode.text = "Best Score:\(bestScore)"
         self.addChild(bestScoreLabelNode)
+
+        lifeLabelNode = SKLabelNode()
+        lifeLabelNode.fontColor = UIColor.black
+        lifeLabelNode.position = CGPoint(x: 10, y: self.frame.size.height - 120)
+        lifeLabelNode.zPosition = 100
+        lifeLabelNode.horizontalAlignmentMode = SKLabelHorizontalAlignmentMode.left
+        lifeLabelNode.text = "Life:\(life)"
+        self.addChild(lifeLabelNode)
+
     }
 }
